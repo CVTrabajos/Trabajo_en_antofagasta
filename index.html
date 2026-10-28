@@ -27,7 +27,7 @@ header p{color:#94A3B8;font-size:.95rem}
 .filter-btn{background:#fff;border:1px solid #CBD5E1;padding:8px 14px;border-radius:20px;font-size:.82rem;font-weight:600;color:#334155;white-space:nowrap;cursor:pointer;flex-shrink:0}
 .filter-btn.active{background:#1D6FE9;color:#fff;border-color:#1D6FE9}
 .stats-bar{display:flex;justify-content:space-between;margin:14px 4px 16px;font-size:.85rem;color:var(--muted);font-weight:500}
-.job-list{display:flex;flex-direction:column;gap:12px}
+.job-list{{display:flex;flex-direction:column;gap:12px}
 .job-card{background:var(--card);border-radius:14px;padding:16px 18px;border:1px solid var(--border);box-shadow:0 2px 6px rgba(0,0,0,.03);display:flex;flex-direction:column;gap:10px}
 .card-top{display:flex;justify-content:space-between;align-items:center}
 .cat-tag{font-size:.75rem;font-weight:700;color:#fff;padding:4px 10px;border-radius:6px;text-transform:uppercase;letter-spacing:.4px}
@@ -99,7 +99,7 @@ footer{max-width:680px;margin:40px auto 0;text-align:center;padding:0 20px;font-
 </main>
 
 <script>
-const CACHE_KEY = 'ofertas_antofagasta_v1';
+const CACHE_KEY = 'ofertas_antofagasta_v2';
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLDzA5t4IGoTZ1y-IMNHBEzaypyj9lbHM_iG5ueu9CBtWpW3nujJ28sZtgvDj_Qz7zhA/exec";
 const CIUDAD_NOMBRE = "Antofagasta";
 const REGION_NOMBRE = "Región de Antofagasta";
@@ -115,7 +115,7 @@ function normalizeStr(str){
 function formatFecha(f){
   if (!f) return '';
   const s = String(f).trim();
-  if (s.includes('GMT') || s.includes('00:00:00')) {
+  if (s.includes('GMT') || s.includes('00:00:00') || s.includes('T')) {
     const d = new Date(s);
     if (!isNaN(d.getTime())) {
       const dia = String(d.getDate()).padStart(2, '0');
@@ -125,6 +125,19 @@ function formatFecha(f){
     }
   }
   return s.split('T')[0];
+}
+
+function inferirCategoria(texto){
+  const t = normalizeStr(texto);
+  if (t.includes('gastro') || t.includes('cocin') || t.includes('barista') || t.includes('alimento') || t.includes('panad') || t.includes('copero')) return 'Gastronomía';
+  if (t.includes('admin') || t.includes('oficina') || t.includes('rrhh') || t.includes('conta') || t.includes('secret') || t.includes('factura') || t.includes('asistente')) return 'Administrativo';
+  if (t.includes('educa') || t.includes('docent') || t.includes('profesor') || t.includes('parvulo') || t.includes('aula') || t.includes('academico')) return 'Educación';
+  if (t.includes('comer') || t.includes('retail') || t.includes('vent') || t.includes('cajer') || t.includes('reponedor') || t.includes('promotor')) return 'Comercial';
+  if (t.includes('logis') || t.includes('bodeg') || t.includes('apilador') || t.includes('chofer') || t.includes('conductor') || t.includes('grua') || t.includes('picking') || t.includes('envasado')) return 'Logística';
+  if (t.includes('salud') || t.includes('tens') || t.includes('enferm') || t.includes('kines') || t.includes('medico') || t.includes('farmacia') || t.includes('pabellon')) return 'Salud';
+  if (t.includes('constru') || t.includes('obra') || t.includes('albanil') || t.includes('soldador') || t.includes('carpinter') || t.includes('jornal')) return 'Construcción';
+  if (t.includes('tecnic') || t.includes('manten') || t.includes('electr') || t.includes('mecanic') || t.includes('clima') || t.includes('prevencion') || t.includes('informatic')) return 'TECNICO';
+  return 'Otros';
 }
 
 const $ = id => document.getElementById(id);
@@ -148,24 +161,43 @@ function renderJobs(){
     let url = String(j.url || '').trim();
     let cargo = String(j.cargo || '').trim();
     let empresa = String(j.empresa || '').trim();
-    
-    // Auto-corrección si URL viene en empresa o cargo
+    let cat = String(j.cat || '').trim();
+    let fecha = String(j.fecha || '').trim();
+
+    // 1. Detección si la categoría recibida es realmente una fecha desfasada de la planilla
+    const catEsFecha = cat.includes('GMT') || cat.includes('00:00:00') || /\d{4}/i.test(cat) || /[A-Za-z]{3}\s+\d/i.test(cat);
+    if (catEsFecha) {
+      if (!fecha || fecha === 'undefined') fecha = cat;
+      cat = inferirCategoria(cargo);
+    }
+
+    // 2. Detección si la empresa contiene la URL del empleo (columnas desplazadas)
     if (!url.startsWith('http') && empresa.startsWith('http')) {
       url = empresa;
-      empresa = 'Empresa Verificada';
+      empresa = cargo; // La empresa real estaba en el campo cargo
+      
+      // Extrae el cargo limpio desde el slug del enlace de Chiletrabajos o Computrabajo
+      if (url.includes('/trabajo/')) {
+        const slug = url.split('/trabajo/')[1].split('?')[0].split('#')[0].replace(/-\d+$/, '');
+        cargo = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      } else if (url.includes('oferta-de-trabajo-de-')) {
+        const slug = url.split('oferta-de-trabajo-de-')[1].split('-en-')[0];
+        cargo = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      } else {
+        cargo = 'Oferta Laboral Disponible';
+      }
+      cat = inferirCategoria(cargo);
     }
-    if (!url.startsWith('http') && cargo.startsWith('http')) {
-      url = cargo;
-      cargo = 'Oferta de Empleo';
-    }
-    
-    // Limpieza de cargo
-    cargo = cargo.replace(/\(.*?[\$].*?\)/g, '').split('|')[0].trim();
+
+    // Limpieza estándar de cargo (quitar sueldos en paréntesis y tuberías)
+    cargo = cargo.replace(/\(.*?[\\$].*?\)/g, '').split('|')[0].trim();
+    if (!cat || cat === 'Otros') cat = inferirCategoria(cargo);
+
     const ok = url.startsWith('http');
-    const fechaLimpia = formatFecha(j.fecha);
+    const fechaLimpia = formatFecha(fecha);
 
     return `<div class="job-card">
-      <div class="card-top"><span class="cat-tag" style="background:${colorOf(j.cat)}">${esc(j.cat || 'Otros')}</span><span class="job-date">${esc(fechaLimpia)}</span></div>
+      <div class="card-top"><span class="cat-tag" style="background:${colorOf(cat)}">${esc(cat || 'Otros')}</span><span class="job-date">${esc(fechaLimpia)}</span></div>
       <div class="job-title">${esc(cargo)}</div>
       <div class="job-company"><span>🏢</span> ${esc(empresa || 'Empresa confidencial')} <span style="margin-left:6px;color:#64748B;">• 📍 Ciudad de ${esc(CIUDAD_NOMBRE)}</span></div>
       ${ok ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" class="postular-btn">POSTULAR AL EMPLEO →</a>` : `<span class="postular-btn off">POSTULACIÓN NO DISPONIBLE</span>`}
