@@ -20,8 +20,8 @@ jobs:
 
       - name: Descargar ofertas desde Apps Script
         env:
-          # PEGA AQUÍ LA URL DE APPS SCRIPT DE ANTOFAGASTA (la que empieza con https://script.google.com/macros/s/...)
-          APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwRAwmM7GMUhyOrP9DlWvnc_Sm7uAolo8Ysl1rLv1q3fKQzQ5sETT92voW7HJcS1Od0/exec"
+          # PEGA AQUÍ LA URL DE APPS SCRIPT DE SANTIAGO (la que empieza con https://script.google.com/macros/s/...)
+          APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwI86L8yxSr3gWn7ycNePNroIRG55_MYnEEQ8Kp-4c03lSNO8b0rGZADiiTwcuB2O3NRQ/exec"
         run: |
           curl -sL --retry 3 --max-time 90 "$APPS_SCRIPT_URL" -o nuevo.json
           python3 - <<'EOF'
