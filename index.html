@@ -98,15 +98,16 @@ footer{max-width:680px;margin:40px auto 0;text-align:center;padding:0 20px;font-
 </main>
 
 <script>
-const CACHE_KEY = 'ofertas_antofagasta_v8';
-// URL de la WebApp de Antofagasta:
-let APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLDzA5t4IGoTZ1y-IMNHBEzaypyj9lbHM_iG5ueu9CBtWpW3nujJ28sZtgvDj_Qz7zhA/exec";
-const PLANILLA_DEFAULT_URL = "https://docs.google.com/spreadsheets/d/1_F4qEZqkADxucDP0PqHHnC8-NUK77vvwt33hGrAKEzo/edit#gid=0";
+const CACHE_KEY = 'ofertas_antofagasta_v7';
+// Si obtuviste una URL nueva en el Paso 1, pégala aquí:
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqIJP57LAPTE4dEvISurvwIQWSBPJICZ1a9-OCON9JHIX67VRSd0j9idtvtT0FhKVUxg/exec";
+const PLANILLA_DEFAULT_URL = "https://docs.google.com/spreadsheets/d/1_F4qEZqkADxucDP0PqHHnC8-NUK77vvwt33hGrAKEzo/edit";
 const CIUDAD_NOMBRE = "Antofagasta";
 const REGION_NOMBRE = "Región de Antofagasta";
 
+// Limpia cachés antiguos con datos desfasados
 try {
-  ['ofertas_antofagasta_v4', 'ofertas_antofagasta_v5', 'ofertas_antofagasta_v6', 'ofertas_antofagasta_v7'].forEach(k => localStorage.removeItem(k));
+  ['ofertas_antofagasta_v4', 'ofertas_antofagasta_v5', 'ofertas_antofagasta_v6'].forEach(k => localStorage.removeItem(k));
 } catch(e){}
 
 const CAT_COLORS = {comercial:'#FF8A00',ventas:'#FF8A00',retail:'#FF8A00',tecnico:'#00CED1',técnico:'#00CED1',mantenimiento:'#00CED1',mantencion:'#00CED1',logistica:'#D4AC0D',logística:'#D4AC0D',bodega:'#D4AC0D',administrativo:'#1565D8',oficina:'#1565D8',rrhh:'#1565D8',salud:'#2EAF62',tens:'#2EAF62',construccion:'#FF0000',construcción:'#FF0000',educacion:'#9C27B0',educación:'#9C27B0',gastronomia:'#795548',gastronomía:'#795548',cocina:'#795548',otros:'#999999'};
@@ -140,13 +141,13 @@ function formatFechaCorta(f){
 function inferirCategoria(texto){
   const t = normalizeStr(texto);
   if (t.includes('gastro') || t.includes('cocin') || t.includes('barista') || t.includes('alimento') || t.includes('panad') || t.includes('copero') || t.includes('restaurante')) return 'Gastronomía';
-  if (t.includes('admin') || t.includes('oficina') || t.includes('rrhh') || t.includes('conta') || t.includes('secret') || t.includes('factura') || t.includes('asistente') || t.includes('recepcionista') || t.includes('gestor')) return 'Administrativo';
+  if (t.includes('admin') || t.includes('oficina') || t.includes('rrhh') || t.includes('conta') || t.includes('secret') || t.includes('factura') || t.includes('asistente') || t.includes('recepcionista')) return 'Administrativo';
   if (t.includes('educa') || t.includes('docent') || t.includes('profesor') || t.includes('parvulo') || t.includes('aula') || t.includes('academico') || t.includes('colegio')) return 'Educación';
   if (t.includes('comer') || t.includes('retail') || t.includes('vent') || t.includes('cajer') || t.includes('reponedor') || t.includes('promotor') || t.includes('tienda') || t.includes('mercaderista')) return 'Comercial';
-  if (t.includes('logis') || t.includes('bodeg') || t.includes('apilador') || t.includes('chofer') || t.includes('conductor') || t.includes('grua') || t.includes('picking') || t.includes('envasado') || t.includes('transporte') || t.includes('despacho') || t.includes('peoneta') || t.includes('operador')) return 'Logistica';
+  if (t.includes('logis') || t.includes('bodeg') || t.includes('apilador') || t.includes('chofer') || t.includes('conductor') || t.includes('grua') || t.includes('picking') || t.includes('envasado') || t.includes('transporte') || t.includes('despacho') || t.includes('peoneta')) return 'Logistica';
   if (t.includes('salud') || t.includes('tens') || t.includes('enferm') || t.includes('kines') || t.includes('medico') || t.includes('farmacia') || t.includes('pabellon') || t.includes('clinica') || t.includes('cuidador')) return 'Salud';
-  if (t.includes('constru') || t.includes('obra') || t.includes('albanil') || t.includes('soldador') || t.includes('carpinter') || t.includes('jornal') || t.includes('pintor') || t.includes('inspector tecnico')) return 'Construcción';
-  if (t.includes('tecnic') || t.includes('manten') || t.includes('electr') || t.includes('mecanic') || t.includes('clima') || t.includes('prevencion') || t.includes('informatic') || t.includes('soporte') || t.includes('calidad') || t.includes('instrumentista')) return 'TECNICO';
+  if (t.includes('constru') || t.includes('obra') || t.includes('albanil') || t.includes('soldador') || t.includes('carpinter') || t.includes('jornal') || t.includes('pintor')) return 'Construcción';
+  if (t.includes('tecnic') || t.includes('manten') || t.includes('electr') || t.includes('mecanic') || t.includes('clima') || t.includes('prevencion') || t.includes('informatic') || t.includes('soporte') || t.includes('calidad')) return 'TECNICO';
   return 'Otros';
 }
 
@@ -157,7 +158,7 @@ function normalizarItem(it) {
   let cat = String(it.cat || it.categoria || it.rubro || (Array.isArray(it) ? it[3] : '') || '').trim();
   let fecha = String(it.fecha || it.date || (Array.isArray(it) ? it[4] : '') || '').trim();
 
-  // Auto-sanación si columnas vinieran desplazadas
+  // Auto-sanación si las columnas vinieron desfasadas por la planilla
   if (!url.startsWith('http') && empresa.startsWith('http')) {
     const realUrl = empresa;
     const realEmpresa = cargo;
@@ -188,12 +189,14 @@ function normalizarItem(it) {
     fecha = realFecha || fecha;
   }
 
+  // Detección de fecha desfasada en la categoría
   const catEsFecha = cat.includes('GMT') || cat.includes('00:00:00') || /\d{4}/.test(cat) || /[A-Za-z]{3}\s+\d/.test(cat);
   if (catEsFecha) {
     if (!fecha || fecha === 'undefined') fecha = cat;
     cat = '';
   }
 
+  // Normalizar categoría canónica
   if (!cat || cat.toLowerCase() === 'otros' || cat.trim() === '') {
     cat = inferirCategoria(cargo);
   } else {
@@ -212,7 +215,7 @@ function normalizarItem(it) {
   return {
     cargo: cargo,
     empresa: empresa || 'Empresa Confidencial',
-    url: (url && url.startsWith('http')) ? url : PLANILLA_DEFAULT_URL,
+    url: url || PLANILLA_DEFAULT_URL,
     cat: cat,
     fecha: fecha
   };
@@ -279,9 +282,10 @@ function showError(){
 function aplicar(data, esLive){
   if (!Array.isArray(data) || !data.length) throw new Error('vacío');
   
-  // Descartar si por error se conectan datos de Santiago
-  if (data.some(d => String(d.empresa || '').toLowerCase().includes('maclean') || String(d.cargo || '').toLowerCase().includes('la reina'))) {
-    console.warn('Ofertas de Santiago descartadas.');
+  // FILTRO DE PROTECCIÓN:
+  // Si provienen datos con ofertas de Santiago (como Inspector de Calidad de Maclean), se descartan
+  if (data.length > 500 && data.some(d => String(d.cargo || '').includes('Inspector/a de Calidad'))) {
+    console.warn('Ofertas de Santiago detectadas en Antofagasta. Descartadas.');
     return;
   }
 
