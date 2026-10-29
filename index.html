@@ -34,9 +34,8 @@ header p{color:#94A3B8;font-size:.95rem}
 .job-date{font-size:.78rem;color:var(--muted);font-weight:600}
 .job-title{font-size:1.05rem;font-weight:700;line-height:1.35;color:#0F172A}
 .job-company{font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.postular-btn{display:block;width:100%;text-align:center;background:#1D4ED8;color:#fff;text-decoration:none;font-weight:700;font-size:.92rem;padding:12px;border-radius:10px;margin-top:4px}
+.postular-btn{display:block;width:100%;text-align:center;background:#1D4ED8;color:#fff;text-decoration:none;font-weight:700;font-size:.92rem;padding:12px;border-radius:10px;margin-top:4px;transition:background .2s}
 .postular-btn:hover{background:#1E40AF}
-.postular-btn.off{background:#94A3B8;cursor:not-allowed}
 .no-results{text-align:center;padding:50px 20px;color:var(--muted)}
 .sk{gap:12px}
 .sk i{display:block;border-radius:6px;background:linear-gradient(90deg,#E2E8F0 25%,#F1F5F9 50%,#E2E8F0 75%);background-size:200% 100%;animation:sh 1.2s infinite}
@@ -99,8 +98,9 @@ footer{max-width:680px;margin:40px auto 0;text-align:center;padding:0 20px;font-
 </main>
 
 <script>
-const CACHE_KEY = 'ofertas_antofagasta_v5';
+const CACHE_KEY = 'ofertas_antofagasta_v6';
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzLDzA5t4IGoTZ1y-IMNHBEzaypyj9lbHM_iG5ueu9CBtWpW3nujJ28sZtgvDj_Qz7zhA/exec";
+const PLANILLA_DEFAULT_URL = "https://docs.google.com/spreadsheets/d/1_F4qEZqkADxucDP0PqHHnC8-NUK77vvwt33hGrAKEzo/edit";
 const CIUDAD_NOMBRE = "Antofagasta";
 const REGION_NOMBRE = "Región de Antofagasta";
 
@@ -209,7 +209,7 @@ function normalizarItem(it) {
   return {
     cargo: cargo,
     empresa: empresa || 'Empresa Confidencial',
-    url: url,
+    url: url || PLANILLA_DEFAULT_URL,
     cat: cat,
     fecha: fecha
   };
@@ -235,14 +235,16 @@ function renderJobs(){
   if (!list.length){ $('jobList').innerHTML = ''; $('noResults').style.display = 'block'; return; }
   $('noResults').style.display = 'none';
   $('jobList').innerHTML = list.map(j => {
-    const ok = j.url && String(j.url).startsWith('http');
+    const linkDestino = (j.url && String(j.url).startsWith('http')) ? j.url : PLANILLA_DEFAULT_URL;
+    const esPlanilla = linkDestino.includes('docs.google.com/spreadsheets');
+    const textoBoton = esPlanilla ? 'POSTULAR EN PLANILLA OFICIAL →' : 'POSTULAR AL EMPLEO →';
     const fechaCorta = formatFechaCorta(j.fecha);
 
     return `<div class="job-card">
       <div class="card-top"><span class="cat-tag" style="background:${colorOf(j.cat)}">${esc(j.cat || 'Otros')}</span><span class="job-date">${esc(fechaCorta)}</span></div>
       <div class="job-title">${esc(j.cargo)}</div>
       <div class="job-company"><span>🏢</span> ${esc(j.empresa || 'Empresa confidencial')}</div>
-      ${ok ? `<a href="${esc(j.url)}" target="_blank" rel="noopener noreferrer" class="postular-btn">POSTULAR AL EMPLEO →</a>` : `<span class="postular-btn off">POSTULACIÓN NO DISPONIBLE</span>`}
+      <a href="${esc(linkDestino)}" target="_blank" rel="noopener noreferrer" class="postular-btn">${textoBoton}</a>
     </div>`;
   }).join('');
 }
